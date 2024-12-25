@@ -1,0 +1,733 @@
+//Класс, хранящий параметры карт
+public class Card : MonoBehaviour
+{
+    public int ID;
+    public string NameCard;
+    public GameObject Prefab;
+//Метод, позволяющий обращаться к параметрам класса Карт
+    public Card(int id, string name, GameObject prefab)
+    {
+        ID = id;
+        NameCard = name;
+        Prefab = prefab;
+    }
+}
+//Класс, отвечающий за создание новых карт
+public class CardManager : MonoBehaviour
+{
+    [SerializeField] private Transform _cardConteiner;
+    [SerializeField] private GameObject _card;
+    public static List<Card> CardList = new();
+
+    public int ID;
+    public static string Name;
+    public static GameObject Prifab;
+    public Sprite icon;
+    public int Idcs;
+
+    public GameObject nameCard;
+    public GameObject iconCard;
+
+
+    private void Start()
+    {
+        CreateCard();
+    }
+//Метод, добавляющий новую запись в список карт
+    public void AddList()
+    {
+        ID = CardList.Count;
+        Name = nameCard.GetComponent<TextMeshProUGUI>().text;
+        Idcs = PrefabsSpace.Idcs;
+        Prifab = PrefabsSpace.Prefabs[Idcs];
+
+        CardList.Add(new Card(ID, "" + Name, Prifab));
+        GameObject _newCard = Instantiate(_card, _cardConteiner);
+        _newCard.GetComponentInChildren<TMPro.TextMeshProUGUI>().text = "" + CardList[ID].NameCard;;
+        _newCard.GetComponent<AttractionController>().prefabCard = CardList[ID].Prefab;
+    }
+//Метод, создающий новую карту
+    public void CreateCard()
+    {
+        foreach(Card card in CardList)
+        {
+            GameObject _newCard = Instantiate(_card, _cardConteiner);
+            _newCard.GetComponentInChildren<TMPro.TextMeshProUGUI>().text = "" + card.NameCard;
+            _newCard.GetComponent<AttractionController>().prefabCard = card.Prefab;
+            _newCard.GetComponentInChildren<Image>().sprite = card.Icon;
+        }
+    }
+} 
+//Класс, хранящий параметры о перетаскиваемом, в данный момент, объекте
+public class Building : MonoBehaviour
+{
+    public Vector3 AlphaYacheika;
+    GameObject find;
+    public Yacheika[,] yachuka;
+    private void Start()
+    {
+        find = GameObject.FindGameObjectWithTag("ScriptTarget");
+        yachuka = GridManager.yacheikas;
+    }
+//Метод, отвечающий за удаление всех объектов с сетки
+    void Update()
+    {
+        if (Input.GetMouseButton(1))
+        {
+            GridManager grud = find.GetComponent<GridManager>();
+            var pos = GetComponent<Transform>().position;
+            var dot = GetComponent<AttractionController>();
+            for (int i = 0; i < grud._width; ++i)
+            {
+                for (int j = 0; j < grud._height; ++j)
+                {
+                    if (yachuka[i, j].dot == AlphaYacheika)
+                    {
+                        yachuka[i, j]._isAvalableToBuild = true;
+                        yachuka[i, j].yacheika.SetActive(true);
+                        Destroy(GetComponent<Collider>().gameObject);
+                    }
+                }
+            }
+        }
+    }
+}
+//Класс, отвечающий за создание сетки из ячеек
+//Методы, отвечающие за выбор размера сетки
+    public void SetValue1()
+    {
+        _width = 3; _height = 3;
+    }
+    public void SetValue2()
+    {
+        _width = 5; _height = 5;
+    }
+    public void SetValue3()
+    {
+        _width = 10; _height = 10;
+    }
+
+    private void Start()
+    {
+        Instantiate(_Plane, new Vector3(_width/2, 0, _height/2), Quaternion.identity);
+    }
+//Метод, создающий ячейки
+    public void _generateGrid()
+    {
+        yacheikas = new Yacheika[_width, _height];
+        float xCod = 0;
+        float zCod = 0;
+        for (int x = 0; x < _width; x++)
+        {
+            for (int  z = 0; z < _height; z++)
+            {
+                GameObject Build = Instantiate(_Yacheika, new Vector3(xCod, 0.1f, zCod), Quaternion.identity);
+                var buildDot = Build.GetComponent<Yacheika>();
+                buildDot.yacheika = Build;
+                buildDot._isAvalableToBuild = true;
+                buildDot.dot = Build.transform.position;
+                yacheikas[x, z] = new Yacheika(true, Build.transform.position, Build);
+                zCod += 1.2f;
+            }
+            xCod += 1.2f;
+            zCod = 0;
+        }
+        form.SetActive(false);
+    }
+}
+//Класс, хранящий параметры ячеек
+public class Yacheika : MonoBehaviour
+{
+    public bool _isAvalableToBuild = true;
+    public Vector3 dot;
+    public GameObject yacheika;
+//Метод, позволяющий обращаться к параметрам ячеек
+    public Yacheika(bool isAvalable, Vector3 Dot, GameObject yach)
+    {
+        _isAvalableToBuild = isAvalable;
+        dot = Dot;
+        yacheika = yach;
+    }
+//Метод, выполняющий функции триггера, запоминающего объект
+    void OnTriggerEnter(Collider other)
+    {
+        var help = other.GetComponent<Building>();
+        Debug.Log("ABOBA");
+        {
+            if (_isAvalableToBuild == true)
+            {
+                help.AlphaYacheika = dot;
+            }
+        }
+    }
+}
+//Класс, отвечающий за выполнение функций DragAndDrop и создание 3D объектов
+public class AttractionController : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler
+{
+    private GameObject currentAttraction;
+    public GameObject prefabCard;
+    GameObject find;
+
+    public void Start()
+    {
+        find = GameObject.FindGameObjectWithTag("ScriptTarget");
+        yacheiki = GridManager.yacheikas;
+    }
+//Метод, создающий 3D объект, при нажатии на карту
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        Cam.canControlCamera = false;
+        currentAttraction = Instantiate(prefabCard, Input.mousePosition, Quaternion.identity);
+        currentAttraction.tag = "Object";
+        var groundPlane = new Plane(Vector3.up, Vector3.zero);
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (groundPlane.Raycast(ray, out float pos))
+        {
+            Vector3 worldPosition = ray.GetPoint(pos);
+            float x = worldPosition.x;
+            float z = worldPosition.y;
+            currentAttraction.transform.position = new Vector3(x, 0, z);
+        }
+    }
+//Метод, отвечающий за перетаскивание 3D объекта в пространстве
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (currentAttraction != null)
+        {
+            var groundPlane = new Plane(Vector3.up, Vector3.zero);
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (groundPlane.Raycast(ray, out float pos))
+            {
+                Vector3 worldPosition = ray.GetPoint(pos);
+                float x = worldPosition.x;
+                float z = worldPosition.z;
+                currentAttraction.transform.position = new Vector3(x, 0, z);
+            }
+        }
+    }
+    public static Yacheika[,] yacheiki;
+//Метод, осуществляющий закрепление объекта в конкретной ячейке, используя полученные данные.
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        var alpha = GameObject.FindGameObjectWithTag("Object");
+        var beta = alpha.GetComponent<Building>();
+        GridManager grud = find.GetComponent<GridManager>();
+        yacheiki = GridManager.yacheikas;
+        if(beta.AlphaYacheika != new Vector3(0, 0, 0))
+        {
+            for (int i = 0; i < grud._width; ++i)
+            {
+                for (int j = 0; j < grud._height; ++j)
+                {
+                    if (yacheiki[i, j].dot == beta.AlphaYacheika)
+                    {
+                        if(yacheiki[i, j]._isAvalableToBuild)
+                        {
+                            currentAttraction.GetComponent<Collider>().enabled = false;
+                            currentAttraction.tag = "ObjectA";
+                            currentAttraction.transform.position = yacheiki[i, j].dot;
+                            yacheiki[i, j]._isAvalableToBuild = false;
+                            yacheiki[i, j].yacheika.SetActive(false);
+                        }
+                        else
+                        {
+                            Destroy(currentAttraction);
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            Destroy(currentAttraction);
+        }
+        Cam.canControlCamera = true;
+    }
+} 
+//Класс для доступа к данным из таблицы Users в Supabase
+[Table("Users")]
+public class UserDb : BaseModel
+{
+    [PrimaryKey("UserID")]
+    public int userid { get; set; }
+
+    [Column("NickName")]
+    public string nickname { get; set; }
+
+    [Column("Password")]
+    public string password { get; set; }
+
+    public UserDb() { }
+
+    public UserDb(string NickName, string Password)
+    {
+        nickname = NickName;
+        password = Password;
+    }
+
+//Метод для поиска ID пользователя, по его логину(NickName) и паролю(Password)
+    public static async Task<int> SearchUserID(Supabase.Client client, UserDb userDb)
+    {
+        try
+        {
+            var ID = await client
+                .From<UserDb>()
+                .Select("UserID")
+                .Filter("NickName", Supabase.Postgrest.Constants.Operator.Equals, userDb.nickname)
+                .Filter("Password", Supabase.Postgrest.Constants.Operator.Equals, userDb.password)
+                .Single();
+            return ID.userid;
+        }
+        catch (Exception ex)
+        {
+            Debug.Log("Ошибка: " + ex.Message);
+            return -1;
+        }
+    }
+
+//Метод для поиска записи в таблице Users, используя логин (NickName) и пароль(Password)
+    public static async Task<bool> AuthenticateUserAsync(Supabase.Client client, UserDb userA)
+    {
+        try
+        {
+            // Выполняем запрос к таблице пользователей
+            var user = await client
+                .From<UserDb>()
+                .Select("*")
+                .Filter("NickName", Supabase.Postgrest.Constants.Operator.Equals, userA.nickname)
+                .Filter("Password", Supabase.Postgrest.Constants.Operator.Equals, userA.password)
+                .Single();
+
+            if (user == null)
+            {
+                Debug.Log($"Ошибка при авторизации: Пользователь с таким логином не найден");
+                // Если пользователь с таким логином не найден
+                return false;
+            }
+            Debug.Log($"Успешная аунтификация");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.Log($"Ошибка при авторизации: {ex.Message}");
+            return false;
+        }
+    }
+
+//Метод для создания записи в таблице Users в Supabase
+
+    public static async Task<bool> RegisterUserAsync(Supabase.Client client, UserDb user)
+    {
+        if(user.nickname != null && user.nickname != "")
+        {
+            if(user.password != null && user.password.Length >= 6 && user.password != "")
+            {
+                try
+                {
+                    // Вставка нового пользователя в таблицу Users
+                    var response = await client.From<UserDb>().Insert(user);
+
+                    if (response != null && response.Models.Count > 0)
+                    {
+                        Debug.Log("Пользователь успешно зарегистрирован.");
+                        return true;
+                    }
+                    else
+                    {
+                        Debug.Log("Ошибка при регистрации пользователя.");
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.Log("Ошибка: " + ex.Message);
+                    return false;
+                }
+            }
+            else
+            {
+                Debug.Log("Ошибка: пароль не может быть пустым или менее 6 символов");
+                return false;
+            }
+        }
+        else
+        {
+            Debug.Log("Ошибка: логин не может быть пустым");
+            return false;
+        }
+
+    }
+}
+
+
+
+//Класс для доступа к данным из таблицы Parks в Supabase
+[Table("Parks")]
+public class ParkDb : BaseModel
+{
+    [PrimaryKey("IDPark")]
+    public int idpark { get; set; }
+
+    [Column("NamePark")]
+    public string namepark { get; set; }
+
+    [Column("CardList")]
+    public string cardlist { get; set; }
+
+    [Column("ParkTransform")]
+    public string parktransform { get; set; }
+
+    [Column("IDCreator")]
+    public int idcreator { get; set; }
+
+    public ParkDb() { }
+
+    public ParkDb(string namepark, string cardlist, string parktransform, int idcreator)
+    {
+        this.namepark = namepark;
+        this.cardlist = cardlist;
+        this.parktransform = parktransform;
+        this.idcreator = idcreator;
+    }
+
+//Метод для создания записей в таблицу Parks в Supabase
+    public static async Task<bool> SavePark(Supabase.Client client, ParkDb park)
+    {
+        try
+        {
+            var responce = await client.From<ParkDb>().Insert(park);
+            if(responce != null && responce.Models.Count > 0)
+            {
+                Debug.Log("Парк успешно сохранён");
+                return true;
+            }
+            else
+            {
+                Debug.Log("Произошла ошибка, при сохранении парка");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.Log("Ошибка: " + ex.Message);
+            return false;
+        }
+    }
+
+//Метод для поиска всех названий макетов в таблице Parks в Supabase
+    public static async Task<Supabase.Postgrest.Responses.ModeledResponse<ParkDb>> LoadParks(Supabase.Client client)
+    {
+        try
+        {
+            var park = await client
+                .From<ParkDb>()
+                .Select("NamePark")
+                .Get();
+            if(park != null)
+            {
+                Debug.Log("Что-то нашлось");
+                return park;
+            }
+            else
+            {
+                Debug.Log("Ошибка, не найдены записи парков");
+                return null;
+            }
+        }
+        catch(Exception ex)
+        {
+            Debug.Log("" + ex);
+            return null;
+        }
+    }
+
+//Метод для поиска записей макета в таблице Parks, используя название макета(NamePark)
+    public static async Task<string> SearchPark(Supabase.Client client, string Name)
+    {
+        try
+        {
+            var park = await client
+                .From<ParkDb>()
+                .Select("*")
+                .Filter("NamePark", Supabase.Postgrest.Constants.Operator.Equals, Name)
+                .Single();
+            return "" + park.parktransform + ";" + park.cardlist;
+        }
+        catch( Exception ex)
+        {
+            Debug.Log("" + ex);
+            return null;
+        }
+    }
+}
+//Класс реализующий подключение к серверам Supabase, а также работу всех методов, связанных с взаимодействием программы и Supabase
+public class Connection : MonoBehaviour
+{
+    public GameObject MainMenu;
+    public GameObject Authorization;
+    public GameObject AULogin;
+    public GameObject AUTextL;
+    public GameObject AUTextP;
+    public GameObject AUPassword;
+    public GameObject Registration;
+    public GameObject RELogin;
+    public GameObject RETextL;
+    public GameObject RETextP;
+    public GameObject REPassword;
+    public GameObject CreateMenu;
+    public GameObject UIPANEL;
+    public GameObject GameUI;
+    public GameObject ChoosePark;
+    public GameObject ParkName;
+    private string nameU;
+    private string passwordU;
+    private string ParkN;
+    private int IDC;
+
+    static string url = "https://xqgzesomfqogrgvwajip.supabase.co";
+    static string key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxZ3plc29tZnFvZ3JndndhamlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI0NTc1MDQsImV4cCI6MjA0ODAzMzUwNH0.k_KVetv9AbFkpiAFIjHPtOmxRv-JTAj-aXCnaHJWeAU";
+//Метод реализующий подключение к Supabase
+    static Supabase.SupabaseOptions options = new Supabase.SupabaseOptions
+    {
+        AutoConnectRealtime = true
+    };
+
+    Supabase.Client supabase = new Supabase.Client(url, key, options);
+
+    public async void Start()
+    {
+        UIPANEL.SetActive(false);
+        GameUI.SetActive(false);
+        Prefabs = Resources.LoadAll<GameObject>("ShowPrefabs");
+        find = GameObject.FindGameObjectWithTag("ScriptTarget");
+        CreateMenu.SetActive(false);
+        Authorization.SetActive(false);
+        Registration.SetActive(false);
+        ChoosePark.SetActive(false);
+        await supabase.InitializeAsync();
+        MainMenu.SetActive(true);
+    }
+    public void AUOpen()
+    {
+        Authorization.SetActive(true);
+    }
+    public void AUClose()
+    {
+        Authorization.SetActive(false);
+    }
+    public void GuestOpen()
+    {
+        Authorization.SetActive(false);
+        Registration.SetActive(false);
+        MainMenu.SetActive(false);
+        ABOBA();
+        ChoosePark.SetActive(true);
+    }
+    public void ChooseClose()
+    {
+        MainMenu.SetActive(true);
+        ChoosePark.SetActive(false);
+    }
+    public void REOpen()
+    {
+        Registration.SetActive(true);
+        Authorization.SetActive(false);
+    }
+    public void REClose()
+    {
+        Authorization.SetActive(true);
+        RETextL.GetComponent<TMP_InputField>().text = "";
+        RETextP.GetComponent<TMP_InputField>().text = "";
+        Registration.SetActive(false);
+    }
+
+//Метод, вызывающий метод авторизации из класса Users
+    public async void Connect()
+    {
+        UserDb userDb = new UserDb()
+        {
+            nickname = AULogin.GetComponent<TextMeshProUGUI>().text,
+            password = AUPassword.GetComponent<TextMeshProUGUI>().text
+        };
+        bool conn = await UserDb.AuthenticateUserAsync(supabase, userDb);
+        if (conn)
+        {
+            nameU = AULogin.GetComponent<TextMeshProUGUI>().text;
+            passwordU = AUPassword.GetComponent<TextMeshProUGUI>().text;
+            Authorization.SetActive(false);
+            MainMenu.SetActive(false);
+            CreateMenu.SetActive(true);
+        }
+        else
+        {
+
+        }
+        AUTextL.GetComponent<TMP_InputField>().text = "";
+        AUTextP.GetComponent<TMP_InputField>().text = "";
+        RETextL.GetComponent<TMP_InputField>().text = "";
+        RETextP.GetComponent<TMP_InputField>().text = "";
+    }
+    int width;
+    int height;
+    public void Grid3X3()
+    {
+        width = 3;
+        height = 3;
+        CreatePark(width, height);
+    }
+    public void Grid5X5()
+    {
+        width = 5;
+        height = 5;
+        CreatePark(width, height);
+    }
+    public void Grid10X10()
+    {
+        width = 10;
+        height = 10;
+        CreatePark(width, height);
+    }
+    GameObject find;
+    public GameObject NamePText;
+//Метод, вызывающий метод поиска ID игрока по его логину(NickName) из класса Users
+    public async void CreatePark(int width, int height)
+    {
+        var text = ParkName.GetComponent<TMP_InputField>().text;
+        try
+        {
+            if (text != null && text != "")
+            {
+                UserDb user = new UserDb()
+                {
+                    nickname = nameU,
+                    password = passwordU
+                };
+                int ID = await UserDb.SearchUserID(supabase, user);
+                if (ID != -1)
+                {
+                    ParkN = ParkName.GetComponent<TMP_InputField>().text;
+                    IDC = ID;
+                    GridManager grid = find.GetComponent<GridManager>();
+                    grid._generateGrid(width, height);
+                    NamePText.GetComponent<TextMeshProUGUI>().text = ParkN;
+                    CreateMenu.SetActive(false);
+                }
+            }
+            else
+            {
+                Debug.Log("Парк не может быть без названия");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.Log("Ошибка: " + ex);
+        }
+       
+    }
+    public void CreateClose()
+    {
+        MainMenu.SetActive(true);
+        CreateMenu.SetActive(false);
+    }
+//Метод, вызывающий метод регистрации нового пользователя из класса Users
+    public async void Registr()
+    {
+        UserDb userDb = new UserDb()
+        {
+            nickname = RELogin.GetComponent<TextMeshProUGUI>().text,
+            password = REPassword.GetComponent<TextMeshProUGUI>().text
+        };
+        bool reg = await UserDb.RegisterUserAsync(supabase, userDb);
+        if(reg)
+        {
+            bool AutoAuth = await UserDb.AuthenticateUserAsync(supabase, userDb);
+            if (AutoAuth)
+            {
+                Registration.SetActive(false);
+                CreateMenu.SetActive(true);
+                MainMenu.SetActive(false);
+            }
+        }
+        else
+        {
+
+        }
+        RETextL.GetComponent<TMP_InputField>().text = "";
+        RETextP.GetComponent<TMP_InputField>().text = "";
+    }
+//Метод, проверяющий все ячейки макета на их занятость 3D моделями и передающий эти данные другому методу SaveBeta, после чего этот метод передаёт уже скомбинированную строку данных другому методу SavePark
+    public void SaveAlpha()
+    {
+        for (int a = 0; a < width; a++)
+        {
+            for (int b = 0; b < height; b++)
+            {
+                if (AttractionController.yacheiki[a, b]._isAvalableToBuild)
+                {
+                    SaveBeta("-1,");
+                }
+                else
+                {
+                    SaveBeta("" + AttractionController.yacheiki[a, b].Object + ",");
+                }
+            }
+        }
+        SavePark();
+    }
+//Метод, комбинирующий данные о макете в одну строку
+    public void SaveBeta(string ListCard)
+    {
+        LIstCard += "" + ListCard;
+    }
+    string LIstCard;
+//Метод, вызывающий другой метод SavePark из класса ParkDb
+    public async void SavePark()
+    {
+        ParkDb parkDb = new ParkDb()
+        {
+            namepark = ParkN,
+            cardlist = "" + LIstCard,
+            parktransform = "" + width + "," + height,
+            idcreator = IDC
+        };
+        await ParkDb.SavePark(supabase, parkDb);
+    }
+    public TMP_Dropdown Listk;
+//Метод, заполняющий выпадающий список (UI элемент Unity) данными из другого метода LoadParks из класса ParkDb
+    public async void ABOBA()
+    {
+        Listk.GetComponent<Dropdown>();
+        Supabase.Postgrest.Responses.ModeledResponse<ParkDb> b = await ParkDb.LoadParks(supabase);
+        List<string> options = new();
+        foreach(ParkDb s in b.Models)
+        {
+            options.Add("" + s.namepark);
+        }
+        Listk.AddOptions(options);
+    }
+    public GameObject[] Prefabs;
+//Метод, выстраивающий в программном пространстве (в 3D мире) выбранный из выпадающего списка макет, используя данные из метода ABOBA и данные из таблицы Parks в Supabase, полученные из метода SearchPark в классе ParkDb
+    public async void Access()
+    {
+        string access = await ParkDb.SearchPark(supabase, "" + Listk.GetComponent<TMP_Dropdown>().captionText.text);
+        string[] B = access.Split(';');
+        string widthAndHeight = B[0];
+        string Transform = B[1];
+        string[] WH = widthAndHeight.Split(",");
+        int widthH = int.Parse(WH[0]);
+        int heightH = int.Parse(WH[1]);
+        string[] Trans = Transform.Split(",");
+        GridManager grid = find.GetComponent<GridManager>();
+        grid._generateGrid(widthH, heightH);
+        for (int i = 0; i < Trans.Length - 1; i++)
+        {
+            if (Trans[i] != "-1")
+            {
+                Vector3 vuc = GridManager.yacheikas[i / widthH, i % heightH].dot;
+                GameObject ShowPrefab = Instantiate(Prefabs[int.Parse(Trans[i])], vuc, Quaternion.identity);
+
+            }
+        }
+        ChoosePark.SetActive(false);
+    }
+}
